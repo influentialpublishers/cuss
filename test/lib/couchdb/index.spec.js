@@ -189,6 +189,34 @@ describe('lib/couchdb', function() {
 
     })
 
+  })
+
+
+  describe('::bulk_upsert', function() {
+
+    it(`should update a list of documents in the given bucket based on the
+       _id and _rev keys. if these two keys don't exist, create the document
+       in the bucket`, function() {
+
+      return couchdb.insert(DB_NAME, { id: '1', first: 'mat', last: 'chuang' })
+      .then(() => couchdb.bulk_upsert(DB_NAME, ['id'], [
+        { first: 'matt', last: 'chuang' }
+      , { _id: '2', first: 'jon', last: 'lee' }
+      ]))
+      .then(() => couchdb.getAll(DB_NAME))
+      .then((res) => {
+
+        const map = R.compose(
+          R.mergeAll
+        , R.map((row) => ({ [row.id] : row.doc }))
+        )(res.rows)
+
+        demand(res.rows).have.length(2)
+        demand(map['1'].first).equal('matt')
+        demand(map['2'].first).equal('jon')
+      })
+
+    })
 
   })
 

@@ -38,7 +38,7 @@
     "bluebird": "^3.4.6",
     "elasticsearch": "^11.0.1",
     "generic-pool": "^3.1.2",
-    "got-couch": "^1.1.0",
+    "got-couch": "^1.1.1",
     "mysql2": "^1.1.0",
     "on-finished": "^2.3.0",
     "pimp-my-sql": "^0.2.0",

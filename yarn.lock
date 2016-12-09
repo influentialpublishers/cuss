@@ -690,9 +690,9 @@ globby@^5.0.0:
     pify "^2.0.0"
     pinkie-promise "^2.0.0"
 
-got-couch@^1.1.0:
-  version "1.1.0"
-  resolved "https://registry.yarnpkg.com/got-couch/-/got-couch-1.1.0.tgz#c755861425fa20262e1ea3edc5fb656332141f46"
+got-couch@^1.1.1:
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/got-couch/-/got-couch-1.1.1.tgz#5027a210d1b2a3a1c445d91ec899aa5bb5609038"
   dependencies:
     cookie "^0.3.1"
     debug "^2.2.0"
