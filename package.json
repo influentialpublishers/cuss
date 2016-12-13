@@ -1,6 +1,6 @@
 {
   "name": "kuss",
-  "version": "0.7.3",
+  "version": "0.8.0",
   "description": "Combined Universal Storage Service",
   "main": "index.js",
   "scripts": {
