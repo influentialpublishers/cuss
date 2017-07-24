@@ -4,7 +4,7 @@ const MemoryStore = require('./lib/memory')
 
 
 const Plugin = PluginFactory(({ namespace='DAO', data={} }) =>
-  (req, res, next) => { 
+  (req, res, next) => {
     if (!req[namespace]) req[namespace] = MemoryStore(data)
 
     return next()

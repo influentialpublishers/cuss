@@ -27,26 +27,21 @@ const R        = require('ramda')
 
 
 // getIndexList :: ElasticsearchClient -> Promise List String
-const getIndexList = (client) => {
-  return client.indices.stats({ index: '_all' })
+const getIndexList = (client) => client.indices.stats({ index: '_all' })
   .then(R.compose(
     R.keys
   , R.prop('indices')
   ))
-}
 
 
 // hasIndex :: ElasticsearchClient -> String -> Promise Boolean
-const hasIndex = R.curry((client, name) => {
-  return getIndexList(client)
-  .then(R.contains(name))
-})
+const hasIndex = R.curry((client, name) => getIndexList(client)
+  .then(R.contains(name)))
 
 
 // addIndex :: ElasticsearchClient -> ( String, Definition )
 //   -> Promise ESResponse | Promise null
-const addIndex = R.curry((client, name, definition) => {
-  return hasIndex(client)(name)
+const addIndex = R.curry((client, name, definition) => hasIndex(client)(name)
   .then((has_index) => {
     if (has_index) {
       return null
@@ -56,14 +51,12 @@ const addIndex = R.curry((client, name, definition) => {
       index : name
     , body  : definition
     })
-  })
-})
+  }))
 
 
 // dropIndex ::
 //   ElasticsearchClient -> String -> Promise ESResponse | Promise null
-const dropIndex = R.curry((client, name) => {
-  return hasIndex(client)(name)
+const dropIndex = R.curry((client, name) => hasIndex(client)(name)
   .then((has_index) => {
     if (!has_index) {
       return null
@@ -72,8 +65,7 @@ const dropIndex = R.curry((client, name) => {
     return client.indices.delete({
       index: name
     })
-  })
-})
+  }))
 
 
 // addIndexFactory ::
@@ -108,27 +100,22 @@ const _addMappingsToIndex = R.curry((client, index, type, mappings, options) =>
   .then(client.indices.putMapping)
 )
 
+/* eslint-disable max-len */
 // getMappings :: ElasticsearchClient
 //   -> ( String -> String ) -> Promise Mapping | Promise null
-const getMappings = R.curry((client, index, type) => {
-  return client.indices.getMapping({ "index": index })
+const getMappings = R.curry((client, index, type) => client.indices.getMapping({ "index": index })
   .then(R.pathOr(null, [index, 'mappings', type, 'properties']))
-  .catch(() => null)
-})
+  .catch(() => null))
 
 // updateMappings :: ElasticsearchClient -> String
 //   -> ( String, Mapping, ESMappingOption ) -> Promise ESResponse
-const updateMappings = R.curry((client, index, type, mappings, options) => {
-  return addIndex(client)(index, null)
-  .then(() => _addMappingsToIndex(client)(index, type, mappings, options))
-})
+const updateMappings = R.curry((client, index, type, mappings, options) => addIndex(client)(index, null)
+  .then(() => _addMappingsToIndex(client)(index, type, mappings, options)))
 
 
 // canMigrate :: String -> String -> Promise Boolean
-const canMigrate = R.curry((client, index, type) => {
-  return getMappings(client)(index, type)
-  .then(R.compose(R.not, R.isNil))
-})
+const canMigrate = R.curry((client, index, type) => getMappings(client)(index, type)
+  .then(R.compose(R.not, R.isNil)))
 
 
 module.exports  = (client) => ({
