@@ -7,52 +7,32 @@ const CouchDBError = require('../../../lib/couchdb/error.js')
 
 describe('lib/couchdb/error.js', function() {
 
-
-  it('should generate an error from a response object',
-  function() {
-
+  it('should generate an error from a response object', function() {
     const err = new CouchDBError({
-      body: 'my body'
-    , raw: {
-        'statusCode': 404
-      }
+      cause: 'my body'
+    , statusCode: 404
     })
 
     demand(err.status).eql(404)
     demand(err.message).eql('Generic CouchDB Error')
     demand(err.response).eql('my body')
     demand(err.name).eql('CouchDBError')
-
   })
 
-
   describe('::throw', function() {
-
-
-    it('should throw a CouchDBError object',
-    function() {
-
+    it('should throw a CouchDBError object', function() {
       try {
-
         CouchDBError.throw({
-          body: 'my body'
-        , raw: {
-            'statusCode': 404
-          }
+          cause: 'my body'
+        , statusCode: 404
         })
-
       } catch (err) {
-
         demand(err.status).eql(404)
         demand(err.message).eql('Generic CouchDB Error')
         demand(err.response).eql('my body')
         demand(err.name).eql('CouchDBError')
-
       }
-
     })
-
-
   })
 
 })

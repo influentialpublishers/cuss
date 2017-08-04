@@ -7,16 +7,19 @@
 const R        = require('ramda')
 const Bluebird = require('bluebird')
 const demand   = require('must')
-const GotCouch = require('got-couch')
 const CouchDB  = require('../../../lib/couchdb/index.js')
 const Err      = require('../../../lib/error')
+const Connection = require('../../../lib/couchdb/connection.js')
+
 
 const DB_NAME  = 'kuss-test-db'
 const DB_CONN  = {
-  url: 'http://localhost'
-, port: 5984
-, username: 'root'
-, password: 'password'
+  server: {
+    url: 'localhost'
+  , port: 5984
+  , username: 'root'
+  , password: 'password'
+  }
 }
 
 const TEST_DOCS = [
@@ -67,42 +70,34 @@ function insertAllTestDocs(couchdb) {
 
 describe('lib/couchdb', function() {
 
-  let connection = null
-  let couchdb    = null
+  let connection = null // Just Nano driver
+  let couchdb    = null // Kuss abstraction
 
   before(function() {
-
-    return Bluebird.resolve(GotCouch(DB_CONN))
-
-    .tap((conn) => { connection = conn })
-
+    return Bluebird.resolve(Connection.open(DB_CONN))
+    .tap((conn) => { connection = Bluebird.promisifyAll(conn.db) })
   })
 
 
   before(function() {
-
     return Bluebird.resolve(CouchDB(DB_CONN))
-
     .tap((client) => { couchdb = client })
   })
 
 
   after(function() {
-
-    return connection.db.delete(DB_NAME)
-
+    return connection.destroyAsync(DB_NAME)
   })
 
 
   beforeEach(function() {
 
-    return Bluebird.resolve(connection.db.delete(DB_NAME))
-
-    .finally(() => connection.db.create(DB_NAME))
+    return connection.destroyAsync(DB_NAME)
+    .finally(() => connection.createAsync(DB_NAME))
 
     // don't care about the deletion error.
     // we will know about the failed created from the failed tests.
-    .catch(() => null)
+    .catch(() => {})
 
   })
 
@@ -110,16 +105,12 @@ describe('lib/couchdb', function() {
 
     it('should insert a document into the given bucket and return a unique ' +
     'identifier for that new document', function() {
-
       return couchdb.insert(DB_NAME, TEST_DOCS[0])
-
       .then((id) => demand(id).is.a.string())
-
     })
 
 
-    it('should allow the user to use the tap function.'
-    , function() {
+    it('should allow the user to use the tap function.', function() {
 
       let expected = null
 
@@ -134,6 +125,18 @@ describe('lib/couchdb', function() {
 
     })
 
+    it('should insert a document with given identifier', function() {
+      const document = {
+        id: '123'
+      }
+      const expected = '123'
+
+      return couchdb.insert(DB_NAME, document)
+      .then((actual) => {
+        demand(actual).eql(expected)
+        demand(actual).is.a.string()
+      })
+    })
 
   })
 
@@ -207,7 +210,6 @@ describe('lib/couchdb', function() {
       ]))
       .then(() => couchdb.getAll(DB_NAME))
       .then((res) => {
-
         const map = R.compose(
           R.mergeAll
         , R.map((row) => ({ [row.id] : row.doc }))
@@ -266,23 +268,35 @@ describe('lib/couchdb', function() {
       insertAllTestDocs(couchdb)
       .then(() => couchdb.update(DB_NAME, 'dne', { has_cape: 'uhh, what?' }))
       .then(() => { throw new Error('Update a non-existant doc succeeded!') })
-      .catch(Err.NotFound, e => { demand(e.status).eql(404) })
+      .catch (Err.NotFound, e => { demand(e.status).eql(404) })
     )
 
-    it(`should throw a StorageConflict if version conflict occurs`, () =>
-      CouchDB({}, () => Bluebird.resolve({
-        get    : () => Bluebird.resolve({})
-      , create : () => () => { throw { message : 'Response code 409 (Conflict)'}}
-      }))
-      .then(couchDB => couchDB.update(DB_NAME, 'dne', { has_cape: 'uhh, what?' }))
-      .then(() => { throw new Error('Update a non-existant doc succeeded!') })
-      .catch(Err.StorageConflict, e => { demand(e.status).eql(409) })
-      .catch(() => { throw new Error('The wrong thing went wrong!') })
-    )
+    it(`should throw a StorageConflict if version conflict occurs`, () => {
+      let identifier = null
+      let revision = null
+
+      return insertAllTestDocs(couchdb)
+      .then((inserted) => {
+        identifier = inserted[0]
+        return couchdb.getById(DB_NAME, identifier)
+        .then((doc) => {
+          revision = doc._rev
+        })
+      })
+      // The first update generates a new document revision
+      .then(() => couchdb.update(
+        DB_NAME, identifier, {username: 'The Man of Steel', _rev: revision}
+      ))
+      // The second update uses the old revision, which generates a conflict
+      .then(() => couchdb.update(
+        DB_NAME, identifier, {username: 'The Man of Tomorrow', _rev: revision}
+      ))
+      .catch(Err.StorageConflict, (e) => { demand(e.status).eql(409) })
+    })
 
     it('should throw a driver error if the database does not exist', () =>
       couchdb.update('DNE', 'dne', { important: false })
-      .then(() => { throw new Error('Update to a non-existant bucket!') })
+      .then(() => { throw new Error('Update to a non-existant bucket succeeded!') })
       .catch (Err.NotFound, e => { demand(e.status).eql(404) })
     )
 
