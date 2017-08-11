@@ -11,7 +11,7 @@ const DEFAULT_NAMESPACE = 'couchdb'
 const SIGNAL_INTERRUPT  = 'SIGINT'
 
 
-const Plugin = PluginFactory(config => {
+const Plugin = PluginFactory((config) => {
   const namespace     = R.propOr(DEFAULT_NAMESPACE, PROP_NAMESPACE, config)
 
   debug('CouchDB Plugin - server configuration - %o', config)
